@@ -2,11 +2,6 @@ class Instruction(object):
     """
     Non-opaque class to represent RE VM instructions.
     """
-    def __init__(self):
-        self.next = None
-        self.split = None
-        self.comparison_function = None
-        self.record = None
 
 
 class Atom(Instruction):
@@ -20,6 +15,8 @@ class Atom(Instruction):
 
 
 class Match(Instruction):
+    next = None
+
     def __repr__(self):
         return "Match"
 

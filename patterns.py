@@ -12,13 +12,16 @@ class Pattern(object):
         return Disjunction(self, other)
 
     def __add__(self, other):
+        xs = []
         if isinstance(self, Concatenation):
-            self.push_back(other)
-            return self
+            xs.extend(self.xs)
+        else:
+            xs.append(self)
         if isinstance(other, Concatenation):
-            other.push_front(self)
-            return other
-        return Concatenation(self, other)
+            xs.extend(other.xs)
+        else:
+            xs.append(other)
+        return Concatenation(*xs)
 
     def __mul__(self, x):
         if isinstance(x, int):
@@ -29,26 +32,38 @@ class Pattern(object):
             mn, mx = x
             if mn == None:
                 mn = 0
-        return Repeat(self, mn=mn, mx=mx)
+        return Repetition(self, mn=mn, mx=mx)
 
 
-class Any(Pattern):
+class Predicate(Pattern):
+    def __init__(self, f):
+        self.f = f
+
+    def __str__(self):
+        return str(self.f)
+
+    def __repr__(self):
+        return "Predicate({0!r})".format(self.f)
+
+    def _compile(self, cont):
+        x = Atom(self.f, next=cont)
+        return x
+
+
+class Any(Predicate):
+    def __init__(self):
+        super(Any, self).__init__(lambda x: True)
+
     def __str__(self):
         return "Any()"
 
     def __repr__(self):
         return "Any()"
 
-    def __call__(self, y):
-        return True
 
-    def _compile(self, cont):
-        x = Atom(self, next=cont)
-        return x
-
-
-class Literal(Pattern):
+class Literal(Predicate):
     def __init__(self, x):
+        super(Literal, self).__init__(lambda y: x == y)
         self.x = x
 
     def __str__(self):
@@ -56,13 +71,6 @@ class Literal(Pattern):
 
     def __repr__(self):
         return "Literal({0})".format(self.x)
-
-    def __call__(self, y):
-        return self.x == y
-
-    def _compile(self, cont):
-        x = Atom(self, next=cont)
-        return x
 
 
 class Disjunction(Pattern):
@@ -76,10 +84,10 @@ class Disjunction(Pattern):
         return Split(a, b)
 
     def __str__(self):
-        return "(" + " | ".join(map(str, self.xs)) + ")"
+        return "(" + " | ".join(map(str, [self.a, self.b])) + ")"
 
     def __repr__(self):
-        return "(" + " | ".join(map(repr, self.xs)) + ")"
+        return "(" + " | ".join(map(repr, [self.a, self.b])) + ")"
 
 
 class Concatenation(Pattern):
@@ -92,12 +100,6 @@ class Concatenation(Pattern):
         for x in reversed(self.xs):
             code = x._compile(code)
         return code
-
-    def push_back(self, p):
-        self.xs.append(p)
-
-    def push_front(self, p):
-        self.xs.insert(p, 0)
 
     def __str__(self):
         return "(" + " + ".join(map(str, self.xs)) + ")"
@@ -122,7 +124,12 @@ class Star(Pattern):
         ret.split = split
         return ret
 
-    # !! FIXME: put __str__ and __repr__
+    def __str__(self):
+        return str(self.x) + "*"
+
+    def __repr__(self):
+        return "Star({0!r})".format(self.x)
+
 
 class Plus(Pattern):
     def __init__(self, pattern, greedy=True):
@@ -140,6 +147,12 @@ class Plus(Pattern):
         ret.split = split
         return xcode
 
+    def __str__(self):
+        return str(self.x) + "+"
+
+    def __repr__(self):
+        return "Plus({0!r})".format(self.x)
+
 
 class Question(Pattern):
     def __init__(self, pattern, greedy=True):
@@ -152,6 +165,12 @@ class Question(Pattern):
             return Split(xcode, cont)
         else:
             return Split(cont, xcode)
+
+    def __str__(self):
+        return str(self.x) + "?"
+
+    def __repr__(self):
+        return "Question({0!r})".format(self.x)
 
 
 class Group(Pattern):
@@ -173,6 +192,7 @@ class Group(Pattern):
     def __repr__(self):
         return "Group({0!r}, {1!r})".format(self.x, self.key)
 
+
 class Repetition(Pattern):
     def __init__(self, pattern, mn=0, mx=None, greedy=True):
         self.x = pattern
@@ -193,98 +213,15 @@ class Repetition(Pattern):
         return code
 
     def __str__(self):
-        if self.mn == 0 and self.mx == None:
-            return "({0})*".format(str(self.x))
-        if self.mn == self.mx:
-            return "({0})*{1}".format(str(self.x), self.mn)
-        return "({0})*({1},{2})".format(str(self.x), self.mn, self.mx)
+        return self._tostring("{0!s}")
 
     def __repr__(self):
+        return self._tostring("{0!r}")
+
+    def _tostring(self, s):
+        base = "({" + s + "})*"
         if self.mn == 0 and self.mx == None:
-            return "({0})*".format(repr(self.x))
+            return base.format(self.x)
         if self.mn == self.mx:
-            return "({0})*{1}".format(repr(self.x), self.mn)
-        return "({0})*({1},{2})".format(repr(self.x), self.mn, self.mx)
-
-
-class CodePrinter:
-    def __init__(self, code):
-        xs = []
-        d = {}
-        q = [code]
-        while len(q) != 0:
-            c = q.pop()
-            if c in d:
-                continue
-            d[c] = len(xs)
-            xs.append(c)
-            x = getattr(c, "split", None)
-            if x != None:
-                q.append(x)
-            x = getattr(c, "next", None)
-            if x != None:
-                q.append(x)
-        self.xs = xs
-        self.d = d
-
-    def _code_to_line(self, code):
-        lineno = self._lineno(code)
-        if isinstance(code, Split):
-            mnemonic = "Split"
-            i = self._lineno(code.next)
-            j = self._lineno(code.split)
-            jump = "-> {0:<4}-> {1}".format(i, j)
-        else:
-            mnemonic = str(code)
-            jump = ""
-            if code.next != None:
-                to = self._lineno(code.next)
-                if to != lineno + 1:
-                    jump = "-> {0}".format(to)
-        return "{0:<8}{1:24}{2}".format(lineno, mnemonic, jump)
-
-    def _lineno(self, code):
-        return self.d[code] + 1
-
-    def tostr(self):
-        lines = []
-        for code in self.xs:
-            line = self._code_to_line(code)
-            lines.append(line)
-        return "\n".join(lines)
-
-
-if __name__ == "__main__":
-    from virtualmachine import VirtualMachine
-
-    #base = (Literal(1) + Literal(2)) | Literal(3)
-    #expr =  Group(base, "key") + Star(Literal(1))
-    #expr =    Star(Any()) | Literal(1)
-    #expr = Question(Literal(1), greedy=False) + Literal(1)
-    #expr = Repetition(Literal(1), 1, 3, greedy=True)
-    expr = Star(Literal("a") + Literal(1)) + Literal(2)
-
-    expr = Group(expr, 0)
-    code = expr.compile()
-
-    printer = CodePrinter(code)
-    print
-    print repr(expr)
-    print
-    print printer.tostr()
-    print
-    vm = VirtualMachine(code)
-    #sequence = [1,1,1,4,2]
-    sequence = (["a",3] * 1) + [2]
-    #sequence = [3,3,3]
-    state = vm.match(sequence)
-    if state == None:
-        print "\nDoes not accept\n"
-    else:
-        print "\nAccepts. State:\n"
-        groups = set((key for key, _ in state.iterkeys()))
-        for key in groups:
-            i = state[(key, 0)]
-            j = state[(key, 1)]
-            s = "{0!r} spans between {1} and {2} and has captured: {3!r}"
-            print s.format(key, i, j, sequence[i:j])
+            return (base + "{1}").format(self.x, self.mn)
+        return (base + "*({1},{2})").format(self.x, self.mn, self.mx)

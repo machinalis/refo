@@ -2,7 +2,12 @@
 #   RE  --  regular expression
 #   VM  --  virtual machine
 #   Epsilon transitions  --  All VM instructions that do not consume a symbol
-#                            or stop the machine.
+#                            or stop the thread (for example a match).
+#
+# Heavily based on Russ Cox notes, see
+# http://swtch.com/~rsc/regexp/regexp2.html for the source.
+#
+
 
 from instructions import Atom, Match, Split, Save
 
@@ -42,9 +47,7 @@ class Thread(object):
         else:
             self.pc = self.pc.next
 
-    def clone(self, pc=None):
-        if pc == None:
-            pc = self.pc
+    def clone(self, pc):
         c = Thread(pc)
         c.state = dict(self.state)
         c.i = self.i
@@ -56,14 +59,24 @@ class Thread(object):
     def accepts(self):
         return isinstance(self.pc, Match)
 
-    def get_pc(self):
-        return self.pc
+    def overlaps(self, other):
+        return self.pc == other.pc
+
+    def is_dead(self):
+        return self.pc == None
 
     def get_state(self):
         return self.state
 
 
 class VirtualMachine(object):
+    """
+    A virtual machine to implement regular expressions.
+    It's a Thompson-like implementation (polynomial complexity), that respects
+    thread priority (for ambiguous submatchings).
+    Also, it does not requiere to have a sequence to be run, it can be feeded
+    one symbol at a time.
+    """
     def __init__(self, code):
         self.code = code
         self.reset()
@@ -72,30 +85,16 @@ class VirtualMachine(object):
         thread = Thread(self.code)
         self.threads = [thread]
 
-    def match(self, sequence):
-        ret = None
-        self.advance()
-        for t in self.threads:
-            if t.accepts():
-                self._cutoff(t)
-                ret = t.get_state()
-        for x in sequence:
-            if len(self.threads) == 0:
-                break
-            self.feed(x)
-            self.advance()
-            for t in self.threads:
-                if t.accepts():
-                    self._cutoff(t)
-                    ret = t.get_state()
-        return ret
-
-    def advance(self):
+    def do_epsilon_transitions(self):
+        """
+        Takes epsilon transitions until all threads are idle (waiting to
+        consume a symbol).
+        """
         new = []
         current = self.threads
         current.reverse()
+        # In this cycle the last thread in `current` has highest priority
         while len(current) != 0:
-            # In this cycle the last thread in `current` is highest priorty
             thread = current.pop()
             if thread.idle():
                 self._add(new, thread)
@@ -103,26 +102,58 @@ class VirtualMachine(object):
                 split = thread.step()
                 for t in split:
                     current.append(t)
+                # appending `thread` last ensures it keeps highest priority
                 current.append(thread)
         self.threads = new
 
     def feed(self, x):
+        """
+        Takes all the transitions that involve consuming a symbol.
+        Or, feeds a symbol to every thread in the VM.
+        It's requiered that every thread is in idle state to call this method.
+        """
         new = []
         for thread in self.threads:
-            assert thread.idle()
             thread.feed(x)
             self._add(new, thread)
         self.threads = new
 
-    def _cutoff(self, thread):
+    def accepting_state(self, default):
         """
-        Cuts off threads of lower priority than `thread`
+        Returns the state (affected by `Save` for example) of the accepting
+        thread with highest priority or `default` if there is not such thread.
         """
-        assert thread in self.threads
-        i = self.threads.index(thread)
-        self.threads = self.threads[:i]
+        for t in self.threads:
+            if t.accepts():
+                return t.get_state()
+        return default
+
+    def cutoff(self):
+        """
+        Looks for an accepting thread and then cuts-off threads of lower
+        priority than that (including itself).
+        If there are no accepting threads then it does nothing.
+        """
+        for i, t in enumerate(self.threads):
+            if t.accepts():
+                self.threads = self.threads[:i]
+                return
+
+    def is_alive(self):
+        """
+        Returns True if it is still possible to make a higher priority match by
+        feeding more symbols. If not, it returns False.
+        """
+        return len(self.threads) != 0
 
     def _add(self, xs, thread):
-        pc = thread.get_pc()
-        if pc != None and pc not in (x.pc for x in xs):
+        """
+        Adds a thread `thread` to a thread queue `xs` unless `thread` has
+        stopped or it overlaps with another thread in `xs`.
+        This "dropping" of some threads is what makes this algorithm to be
+        polynomial and not exponential in complexity, because this way it's
+        ensured that there will never be more threads than instructions in the
+        code.
+        """
+        if not thread.is_dead() and all(not thread.overlaps(x) for x in xs):
             xs.append(thread)
