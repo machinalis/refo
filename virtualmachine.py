@@ -16,7 +16,7 @@ class Thread(object):
     def __init__(self, pc):
         self.pc = pc
         self.state = {}
-        self.i = 0
+        self.i = 0    # FIXME: `i` is the same for every thread
 
     def step(self):
         """
@@ -72,10 +72,15 @@ class Thread(object):
 class VirtualMachine(object):
     """
     A virtual machine to implement regular expressions.
+    A regular expresion is compiled into a special program code and then run
+    using a virtual machine specially made for that pourpose.
     It's a Thompson-like implementation (polynomial complexity), that respects
     thread priority (for ambiguous submatchings).
     Also, it does not requiere to have a sequence to be run, it can be feeded
     one symbol at a time.
+    If the code has epsilon-cycles, ie, cyles of instructions that do not
+    consume symbols then a thread running over that cycle does only one
+    iteration and then is dropped(removed from the thread pool).
     """
     def __init__(self, code):
         self.code = code
@@ -94,11 +99,15 @@ class VirtualMachine(object):
         current = self.threads
         current.reverse()
         # In this cycle the last thread in `current` has highest priority
+        seen = set()
         while len(current) != 0:
             thread = current.pop()
             if thread.idle():
                 self._add(new, thread)
             else:
+                if thread.pc in seen:  # FIXME: Breaks abstraction
+                    continue
+                seen.add(thread.pc)  # FIXME: Breaks abstraction
                 split = thread.step()
                 for t in split:
                     current.append(t)

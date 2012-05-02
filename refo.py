@@ -19,6 +19,9 @@ class Match(object):
     def end(self):
         return self[None][1]
 
+    def group(key=None):
+        return self[key]
+
     def __getitem__(self, key):
         try:
             return self.state[(key, 0)], self.state[(key, 1)]
@@ -108,7 +111,7 @@ def finditer_alt(pattern, iterable):
         yield m
 
 
-finditer = finditer_lame
+finditer = finditer_alt
 
 
 """

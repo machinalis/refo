@@ -98,34 +98,42 @@ test = """
 </moses:source>
 """
 
-"""
+#"""
 for m in finditer(tag, test):
     i, j = m.span()
     #print repr(test[i:j])
 
 contents = tag + Group(Star(Any(), greedy=False), 0) + tag
 
-for m in finditer(contents, test):
+for m in finditer_alt(contents, test):
     i, j = m[0]
-    #print repr(test[i:j])
+    print repr(test[i:j])
+#"""
+
+
 """
-
-
-s = "aaaaabaaa"
+s = "aaaaabaaabbbbbb"
 regex = Star(Literal("a"), greedy=True)
+
+
 for m in finditer_lame(regex, s):
     i, j = m.span()
     print i, j, s[i:j]
 
+
 import refo
 
 pattern = regex
-#pattern = Star(Star(Any(), greedy=False) + Group(pattern, None))
+pattern = Group(Star(Star(Any(), greedy=False) + Group(pattern, None)), 0)
+#pattern = Star(Any(), greedy=False) + Group(pattern, None)
 cp = CodePrinter(pattern.compile())
 print cp.tostr()
 CodeChecker(pattern.compile())
-assert False
+#assert False
 m = refo._match(pattern, s)
 if m != None:
     i, j = m.span()
     print i, j, s[i:j]
+    i, j = m[0]
+    print i, j, s[i:j]
+"""
