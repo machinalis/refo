@@ -26,7 +26,7 @@ The syntax is a little bit different than python's re, and similar to that of
 pyparsing, you have to more-or-less explicitly build the syntax tree of
 your regular expression. For instance:
 
-`"ab"` is `Literal("a) + Literal("b")`
+`"ab"` is `Literal("a") + Literal("b")`
 
 `"a*"` is `Star(Literal("a"))`
 
@@ -43,14 +43,14 @@ content, for instance:
     m = match(regex, "abab")
     print m.span("foobar")  # prints (0, 4)
 
-For more check out the examples in the examples folder.
+For more, check out the examples in the examples folder.
 
 
 How we use it
 -------------
 
 At Machinalis we use REfO for applications similar to that in
-examples/words.py check it out!
+`examples/words.py`, check it out!
 
 
 About the implementation
@@ -74,5 +74,7 @@ Acknowledgements
 ----------------
 
 Thanks Russ Cox for sharing the awesome info and insights on your web site.
+
 Thanks Javier Mansilla for reviewing the code and being enthusiastic about it.
+
 Thanks Machinalis for everything :)
