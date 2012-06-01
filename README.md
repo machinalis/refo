@@ -49,7 +49,7 @@ For more check out the examples in the examples folder.
 How we use it
 -------------
 
-At Machinalis we use REfO for an applications similar to that in
+At Machinalis we use REfO for applications similar to that in
 examples/words.py check it out!
 
 
