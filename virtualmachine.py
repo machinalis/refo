@@ -1,18 +1,13 @@
-# Some glossry:
-#   RE  --  regular expression
-#   VM  --  virtual machine
-#   Epsilon transitions  --  All VM instructions that do not consume a symbol
-#                            or stop the thread (for example a match).
-#
-# Heavily based on Russ Cox notes, see
-# http://swtch.com/~rsc/regexp/regexp2.html for the source.
-#
+import copy
+from instructions import Atom, Accept, Split, Save
 
 
-from instructions import Atom, Match, Split, Save
-
-
-class Thread(object):
+class RefoThread(object):
+    """
+    This class carries the per-thread information to implement a virtual
+    machine aproach to regular expressions. ie, instances of this run inside
+    an instance of VirtualMachine.
+    """
     def __init__(self, pc):
         self.pc = pc
         self.state = {}
@@ -20,20 +15,22 @@ class Thread(object):
 
     def step(self):
         """
-        Take single epsilon transitions
+        Take single epsilon transitions.
+        The return value is a list of threads that must keep being executed.
+        ie, if the instruction is Save, then `[self]` is returned, and if
+        the instruction is Split then [self, other] is returned.
         """
-        assert not isinstance(self.pc, Atom) and not isinstance(self.pc, Match)
+        assert not isinstance(self.pc, (Atom, Accept))
+        assert isinstance(self.pc, (Split, Save)), "Unknown instruction"
         ret = []
         if isinstance(self.pc, Split):
             s1 = self.pc.next
             s2 = self.pc.split
             self.pc = s1
-            ret.append(self.clone(s2))
-        elif isinstance(self.pc, Save):
+            ret.append(self.copy(s2))
+        else:  # Is a Save instruction
             self.state[self.pc.record] = self.i
             self.pc = self.pc.next
-        else:
-            raise Exception("Unknown instruction", self.pc)
         return ret
 
     def feed(self, x):
@@ -42,31 +39,28 @@ class Thread(object):
         """
         assert self.idle()
         self.i += 1
-        if isinstance(self.pc, Match) or not self.pc.comparison_function(x):
+        if isinstance(self.pc, Accept) or not self.pc.comparison_function(x):
             self.pc = None
         else:
             self.pc = self.pc.next
 
-    def clone(self, pc):
-        c = Thread(pc)
-        c.state = dict(self.state)
+    def copy(self, pc):
+        c = RefoThread(pc)
+        c.state = copy.deepcopy(self.state)
         c.i = self.i
         return c
 
     def idle(self):
-        return isinstance(self.pc, Atom) or isinstance(self.pc, Match)
+        return isinstance(self.pc, Atom) or isinstance(self.pc, Accept)
 
     def accepts(self):
-        return isinstance(self.pc, Match)
+        return isinstance(self.pc, Accept)
 
     def overlaps(self, other):
         return self.pc == other.pc
 
-    def is_dead(self):
-        return self.pc == None
-
-    def get_state(self):
-        return self.state
+    def is_alive(self):
+        return self.pc != None
 
 
 class VirtualMachine(object):
@@ -87,7 +81,7 @@ class VirtualMachine(object):
         self.reset()
 
     def reset(self):
-        thread = Thread(self.code)
+        thread = RefoThread(self.code)
         self.threads = [thread]
 
     def do_epsilon_transitions(self):
@@ -100,14 +94,14 @@ class VirtualMachine(object):
         current.reverse()
         # In this cycle the last thread in `current` has highest priority
         seen = set()
-        while len(current) != 0:
+        while current:
             thread = current.pop()
             if thread.idle():
                 self._add(new, thread)
             else:
-                if thread.pc in seen:  # FIXME: Breaks abstraction
+                if thread.pc in seen:
                     continue
-                seen.add(thread.pc)  # FIXME: Breaks abstraction
+                seen.add(thread.pc)
                 split = thread.step()
                 for t in split:
                     current.append(t)
@@ -134,7 +128,7 @@ class VirtualMachine(object):
         """
         for t in self.threads:
             if t.accepts():
-                return t.get_state()
+                return t.state
         return default
 
     def cutoff(self):
@@ -159,10 +153,10 @@ class VirtualMachine(object):
         """
         Adds a thread `thread` to a thread queue `xs` unless `thread` has
         stopped or it overlaps with another thread in `xs`.
-        This "dropping" of some threads is what makes this algorithm to be
-        polynomial and not exponential in complexity, because this way it's
-        ensured that there will never be more threads than instructions in the
-        code.
         """
-        if not thread.is_dead() and all(not thread.overlaps(x) for x in xs):
+        # This "dropping" of some threads is what makes this algorithm to be
+        # polynomial and not exponential in complexity, because this way it's
+        # ensured that there will never be more threads than instructions in
+        # the code.
+        if thread.is_alive() and all(not thread.overlaps(x) for x in xs):
             xs.append(thread)

@@ -1,32 +1,36 @@
 from virtualmachine import VirtualMachine
-from virtualmachine import Thread  # FIXME: eraseme
-from patterns import Pattern, Any, Star, Group
+from patterns import Pattern, Any, Star, Group, _start, _end
 
 
 class Match(object):
     """
     Non-opaque class used to return RE match information.
+    Matching soubgroup key `None` is reserved for the matching of the whole
+    string.
     """
     def __init__(self, state=None):
         self.state = state
 
-    def span(self):
-        return self[None]
+    def span(self, key=None):
+        return self[key]
 
-    def start(self):
-        return self[None][0]
+    def start(self, key=None):
+        return self[key][0]
 
-    def end(self):
-        return self[None][1]
+    def end(self, key=None):
+        return self[key][1]
 
-    def group(key=None):
+    def group(self, key=None):
         return self[key]
 
     def __getitem__(self, key):
         try:
-            return self.state[(key, 0)], self.state[(key, 1)]
+            return self.state[_start(key)], self.state[_end(key)]
         except KeyError:
             raise KeyError(key)
+
+    def __contains__(self, key):
+        return _start(key) in self.state
 
     def offset(self, amount):
         self.state = {key: i + amount for key, i in self.state.iteritems()}
@@ -82,6 +86,13 @@ def finditer_lame(pattern, sequence):
 
 
 def finditer_alt(pattern, iterable):
+    """
+    An experimental implementation of finditer.
+    The idea here is to make an implementation that is able to work with any
+    iterator, not necessariry the indexable ones.
+    This implies (among other things) that each element is feeded only once and
+    then discarded.
+    """
     assert isinstance(pattern, Pattern)
     pattern = Star(Star(Any(), greedy=False) + Group(pattern, None))
     code = pattern.compile()
@@ -111,42 +122,4 @@ def finditer_alt(pattern, iterable):
         yield m
 
 
-finditer = finditer_alt
-
-
-"""
-def finditer(pattern, iterable):
-    assert isinstance(pattern, Pattern)
-    #pattern = Star(Any(), greedy=False) + Group(pattern, None)
-    pattern = Group(pattern, None)
-    code = pattern.compile()
-    vm = VirtualMachine(code)
-    start = 0
-    end = -1
-    m = Match()
-    new = Match()
-    # Start VM
-    vm.do_epsilon_transitions()
-    new.state = vm.accepting_state(None)
-    if new.state != None:
-        m = Match(new.state)
-    vm.cutoff()
-    for x in iterable:
-        if not vm.is_alive():
-            break
-        vm.feed(x)
-        vm.threads.append(Thread(vm.code))
-        vm.do_epsilon_transitions()
-        new.state = vm.accepting_state(None)
-        if new.state != None:
-            print "new state", new.span()
-            if start == new.start() and end < new.end():
-                m = Match(new.state)
-            elif end <= new.start():
-                yield m
-                m = Match(new.state)
-            start, end = m.span()
-        vm.cutoff()
-    if m.state != None:
-        yield m
-"""
+finditer = finditer_lame

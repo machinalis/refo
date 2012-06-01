@@ -1,6 +1,9 @@
 class Instruction(object):
     """
     Non-opaque class to represent RE VM instructions.
+    Instructions join among themselves to form code (a program).
+    Instructions are joined like a linked list usign the `next` and `split`
+    attributes, thus forming a directed graph.
     """
 
 
@@ -14,11 +17,11 @@ class Atom(Instruction):
         return "Atom({0})".format(repr(self.comparison_function))
 
 
-class Match(Instruction):
+class Accept(Instruction):
     next = None
 
     def __repr__(self):
-        return "Match"
+        return "Accept"
 
 
 class Split(Instruction):
