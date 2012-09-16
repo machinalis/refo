@@ -43,13 +43,13 @@ class RefoThread(object):
         assert isinstance(self.pc, (Split, Save)), "Unknown instruction"
         ret = []
         if isinstance(self.pc, Split):
-            s1 = self.pc.next
+            s1 = self.pc.succ
             s2 = self.pc.split
             self.pc = s1
             ret.append(self.copy(s2))
         else:  # Is a Save instruction
             self.state[self.pc.record] = self.i
-            self.pc = self.pc.next
+            self.pc = self.pc.succ
         return ret
 
     def feed(self, x):
@@ -61,7 +61,7 @@ class RefoThread(object):
         if isinstance(self.pc, Accept) or not self.pc.comparison_function(x):
             self.pc = None
         else:
-            self.pc = self.pc.next
+            self.pc = self.pc.succ
 
     def copy(self, pc):
         c = self.__class__(pc)
@@ -99,7 +99,7 @@ class RefoThreadWithPath(RefoThread):
             y = self.pc.comparison_function(x)
             if y:
                 self.state["path"].append(y)
-                self.pc = self.pc.next
+                self.pc = self.pc.succ
             else:
                 self.pc = None
 

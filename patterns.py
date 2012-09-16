@@ -63,7 +63,7 @@ class Predicate(Pattern):
         self.arg = f
 
     def _compile(self, cont):
-        x = Atom(self.f, next=cont)
+        x = Atom(self.f, succ=cont)
         return x
 
 
@@ -131,10 +131,10 @@ class Star(Pattern):
         split = Split()
         x = self.x._compile(split)
         if self.greedy:
-            split.next = x
+            split.succ = x
             split.split = cont
         else:
-            split.next = cont
+            split.succ = cont
             split.split = x
         # `Plus` would return `x`
         return split
@@ -154,10 +154,10 @@ class Plus(Pattern):
         split = Split()
         x = self.x._compile(split)
         if self.greedy:
-            split.next = x
+            split.succ = x
             split.split = cont
         else:
-            split.next = cont
+            split.succ = cont
             split.split = x
         # `Star` would return `split`
         return x
@@ -192,8 +192,8 @@ class Group(Pattern):
         start = Save(_start(self.key))
         end = Save(_end(self.key))
         code = self.x._compile(end)
-        start.next = code
-        end.next = cont
+        start.succ = code
+        end.succ = cont
         return start
 
     def __str__(self):
