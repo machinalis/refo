@@ -19,6 +19,7 @@
 
 import unittest
 import refo
+from refo.match import Match
 import re
 import math
 
@@ -43,10 +44,21 @@ def _seq2str(seq):
     return "".join(xs)
 
 
+def path_function(x):
+    def f(xs):
+        if x in xs:
+            return x * x
+        return None
+    return f
+
+
 class TestRefoModule(unittest.TestCase):
     seq = xrange(10000)
     a = refo.Predicate(isprime)
     b = refo.Predicate(lambda x: not isprime(x))
+    x = refo.Predicate(path_function(1))
+    y = refo.Predicate(path_function(2))
+    z = refo.Predicate(path_function(3))
     string = _seq2str(seq)
 
     def _eq_span_n_stuff(self, m, strm):
@@ -136,6 +148,20 @@ class TestRefoModule(unittest.TestCase):
         xs = [x.group("foobar") for x in xs]
         strxs = [x.span(1) for x in strxs]
         self.assertListEqual(xs, strxs)
+
+    def test_match_path(self):
+        seq = [[1, 2],     # x and y
+               [1],        # x
+               [1, 2, 3],  # x, y and z
+               [1, 2],     # x and y
+               [2, 3],     # y and z
+               [0, 4, 5],
+               []]
+        regex = refo.Star(self.y) + refo.Plus(self.x + self.z)
+        m = refo.match(regex, seq, keep_path=True)
+        self.assertIsInstance(m, Match)
+        path = m.get_path()
+        self.assertEqual([4, 1, 9, 1, 9], path)
 
 
 if __name__ == "__main__":

@@ -64,7 +64,7 @@ class RefoThread(object):
             self.pc = self.pc.next
 
     def copy(self, pc):
-        c = RefoThread(pc)
+        c = self.__class__(pc)
         c.state = copy.deepcopy(self.state)
         c.i = self.i
         return c
@@ -79,7 +79,29 @@ class RefoThread(object):
         return self.pc == other.pc
 
     def is_alive(self):
-        return self.pc != None
+        return self.pc is not None
+
+
+class RefoThreadWithPath(RefoThread):
+    def __init__(self, pc):
+        super(RefoThreadWithPath, self).__init__(pc)
+        self.state["path"] = []
+
+    def feed(self, x):
+        """
+        Take a transition that involves consuming a symbol
+        """
+        assert self.idle()
+        self.i += 1
+        if isinstance(self.pc, Accept):
+            self.pc = None
+        else:
+            y = self.pc.comparison_function(x)
+            if y:
+                self.state["path"].append(y)
+                self.pc = self.pc.next
+            else:
+                self.pc = None
 
 
 class VirtualMachine(object):
@@ -95,12 +117,16 @@ class VirtualMachine(object):
     consume symbols then a thread running over that cycle does only one
     iteration and then is dropped(removed from the thread pool).
     """
-    def __init__(self, code):
+    def __init__(self, code, keep_path=False):
         self.code = code
+        self.path = keep_path
         self.reset()
 
     def reset(self):
-        thread = RefoThread(self.code)
+        if self.path:
+            thread = RefoThreadWithPath(self.code)
+        else:
+            thread = RefoThread(self.code)
         self.threads = [thread]
 
     def do_epsilon_transitions(self):

@@ -46,7 +46,7 @@ class Pattern(object):
         else:
             assert isinstance(x, tuple)
             mn, mx = x
-            if mn == None:
+            if mn is None:
                 mn = 0
         return Repetition(self, mn=mn, mx=mx)
 
@@ -205,7 +205,7 @@ class Group(Pattern):
 
 class Repetition(Pattern):
     def __init__(self, pattern, mn=0, mx=None, greedy=True):
-        assert mn != None or mx != None or mn <= mx
+        assert mn is not None or mx is not None or mn <= mx
         self.x = pattern
         self.mn = mn
         self.mx = mx
@@ -213,7 +213,7 @@ class Repetition(Pattern):
 
     def _compile(self, cont):
         code = cont
-        if self.mx != None:
+        if self.mx is not None:
             q = Question(self.x, self.greedy)
             for _ in xrange(self.mx - self.mn):
                 code = q._compile(code)
@@ -231,7 +231,7 @@ class Repetition(Pattern):
 
     def _tostring(self, s):
         base = "(" + s + ")*"
-        if self.mn == 0 and self.mx == None:
+        if self.mn == 0 and self.mx is None:
             return base.format(self.x)
         if self.mn == self.mx:
             return (base + "{1}").format(self.x, self.mn)

@@ -30,7 +30,7 @@ class Instruction(object):
 class Atom(Instruction):
     def __init__(self, comparison_function, next=None):
         self.comparison_function = comparison_function
-        if next != None:
+        if next is not None:
             self.next = next
 
     def __repr__(self):
@@ -46,9 +46,9 @@ class Accept(Instruction):
 
 class Split(Instruction):
     def __init__(self, s1=None, s2=None):
-        if s1 != None:
+        if s1 is not None:
             self.next = s1
-        if s2 != None:
+        if s2 is not None:
             self.split = s2
 
     def __repr__(self):
@@ -58,7 +58,7 @@ class Split(Instruction):
 class Save(Instruction):
     def __init__(self, record, next=None):
         self.record = record
-        if next != None:
+        if next is not None:
             self.next = next
 
     def __repr__(self):
