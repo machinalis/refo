@@ -65,7 +65,7 @@ class RefoThread(object):
 
     def copy(self, pc):
         c = self.__class__(pc)
-        c.state = copy.deepcopy(self.state)
+        c.state = copy.copy(self.state)
         c.i = self.i
         return c
 
@@ -102,6 +102,13 @@ class RefoThreadWithPath(RefoThread):
                 self.pc = self.pc.succ
             else:
                 self.pc = None
+
+    def copy(self, pc):
+        c = self.__class__(pc)
+        c.state = copy.copy(self.state)
+        c.state["path"] = list(c.state["path"])
+        c.i = self.i
+        return c
 
 
 class VirtualMachine(object):
