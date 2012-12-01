@@ -12,7 +12,7 @@ import time
 # and therefore this test should finish in a reasonable time.
 
 # You might want to try with N = 20, 30, 40, 100 to see what happens
-N = 25
+N = 30
 
 a = Literal("a")
 string = "a" * N
@@ -23,6 +23,7 @@ end = time.time()
 print "Refo finished in {0:.2} seconds".format(end - start)
 
 regex = "(:?a?){{{0}}}a{{{0}}}".format(N)
+print "Trying", regex
 regex = re.compile(regex)
 start = time.time()
 regex.match(string)
