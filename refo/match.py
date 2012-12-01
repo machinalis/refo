@@ -58,6 +58,10 @@ class Match(object):
     def get_path(self):
         return self.state["path"]
 
+    def __iter__(self):
+        for key in set(x[0] for x in self.state):
+            yield key
+
 
 def _match(pattern, iterable, keep_path=False):
     assert isinstance(pattern, Pattern)
