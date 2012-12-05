@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
     name="REfO",
-    version="0.11",
+    version="0.12",
     description="Regular expressions for objects",
     long_description=open('README.txt').read(),
     author="Rafael Carrascosa",
