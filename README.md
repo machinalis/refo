@@ -19,6 +19,8 @@ the first months of 2012.
 Contact: rcarrascosa@machinalis.com
 or rafacarrascosa xyz gmail.com (replace " xyz " with "@")
 
+[![Build Status](https://travis-ci.org/gjhiggins/refo.png?branch=master)](https://travis-ci.org/gjhiggins/refo)
+
 How to use it
 -------------
 
