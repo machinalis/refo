@@ -5,6 +5,7 @@
 #  This file is part of REfO and is distributed under the Modified BSD License.
 #  You should have received a copy of license in the LICENSE.txt file.
 
+
 class Instruction(object):
     """
     Non-opaque class to represent RE VM instructions.

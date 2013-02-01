@@ -5,7 +5,7 @@
 # complicated regular expression.
 
 import argparse
-parser = argparse.ArgumentParser(description="Prints an xml document tree" +\
+parser = argparse.ArgumentParser(description="Prints an xml document tree" +
                                              "... sort of.")
 parser.add_argument("filename", action="store")
 cfg = parser.parse_args()

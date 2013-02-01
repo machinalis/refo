@@ -5,7 +5,7 @@
 #  This file is part of REfO and is distributed under the Modified BSD License.
 #  You should have received a copy of license in the LICENSE.txt file.
 
-from instructions import Atom, Accept, Split, Save
+from .instructions import Atom, Accept, Split, Save
 
 
 class Pattern(object):
@@ -203,11 +203,11 @@ class Repetition(Pattern):
         code = cont
         if self.mx is not None:
             q = Question(self.x, self.greedy)
-            for _ in xrange(self.mx - self.mn):
+            for _ in range(self.mx - self.mn):
                 code = q._compile(code)
         else:
             code = Star(self.x, greedy=self.greedy)._compile(code)
-        for _ in xrange(self.mn):
+        for _ in range(self.mn):
             code = self.x._compile(code)
         return code
 
