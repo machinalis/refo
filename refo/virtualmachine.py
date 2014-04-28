@@ -6,7 +6,7 @@
 #  You should have received a copy of license in the LICENSE.txt file.
 
 import copy
-from instructions import Atom, Accept, Split, Save
+from .instructions import Atom, Accept, Split, Save
 
 
 class RefoThread(object):

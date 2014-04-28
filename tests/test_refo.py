@@ -7,7 +7,7 @@
 
 import unittest
 import refo
-from refo.match import Match
+from refo.match import Match, match as refomatch
 import re
 import math
 
@@ -58,12 +58,12 @@ class TestRefoModule(unittest.TestCase):
     def _eq_list_n_stuff(self, xs, strxs):
         xs = [x.span() for x in xs]
         strxs = [x.span() for x in strxs]
-        self.assertListEqual(xs, strxs)
+        self.assert_(xs == strxs)
 
     def test_match1(self):
-        regex = self.b + self.b + self.a + self.a + self.b
+        regexptn = self.b + self.b + self.a + self.a + self.b
         strregex = re.compile("bbaab")
-        m = refo.match(regex, self.seq)
+        m = refomatch(regexptn, self.seq)
         strm = strregex.match(self.string)
         self._eq_span_n_stuff(m, strm)
 
@@ -75,67 +75,67 @@ class TestRefoModule(unittest.TestCase):
         # and therefore this test should finish in a reasonable time.
         N = 100
         a = refo.Literal("a")
-        string = "a" * N
-        regex = refo.Question(a) * N + a * N
-        m = refo.match(regex, string)
+        strg = "a" * N
+        regexptn = refo.Question(a) * N + a * N
+        m = refomatch(regexptn, strg)
         self.assertNotEqual(m, None)
 
     def test_search1(self):
-        regex = self.a + self.b + self.b + self.b + self.a
+        regexptn = self.a + self.b + self.b + self.b + self.a
         strregex = re.compile("abbba")
-        m = refo.search(regex, self.seq)
+        m = refo.search(regexptn, self.seq)
         strm = strregex.search(self.string)
         self._eq_span_n_stuff(m, strm)
 
     def test_search2(self):
         tab = self.a + self.b + self.a
-        regex = tab + self.b * 3 + tab
+        regexptn = tab + self.b * 3 + tab
         strregex = re.compile("ababbbaba")
-        m = refo.search(regex, self.seq)
+        m = refo.search(regexptn, self.seq)
         strm = strregex.search(self.string)
         self._eq_span_n_stuff(m, strm)
 
     def test_search3(self):
         tab = self.a + self.b
-        regex = tab + tab + refo.Plus(self.b)
+        regexptn = tab + tab + refo.Plus(self.b)
         strregex = re.compile("ababb+")
-        m = refo.search(regex, self.seq)
+        m = refo.search(regexptn, self.seq)
         strm = strregex.search(self.string)
         self._eq_span_n_stuff(m, strm)
 
     def test_search4(self):
         tab = self.a + self.b
-        regex = tab * 2 + refo.Plus(self.b, greedy=False)
+        regexptn = tab * 2 + refo.Plus(self.b, greedy=False)
         strregex = re.compile("ababb+?")
-        m = refo.search(regex, self.seq)
+        m = refo.search(regexptn, self.seq)
         strm = strregex.search(self.string)
         self._eq_span_n_stuff(m, strm)
 
     def test_search5(self):
         tab = self.a + self.b
-        regex = tab * (2, 5)
+        regexptn = tab * (2, 5)
         strregex = re.compile("(?:ab){2,5}")
-        m = refo.search(regex, self.seq)
+        m = refo.search(regexptn, self.seq)
         strm = strregex.search(self.string)
         self._eq_span_n_stuff(m, strm)
 
     def test_finditer1(self):
         tab = self.a + self.b
-        regex = tab * (2, None)
+        regexptn = tab * (2, None)
         strregex = re.compile("(?:ab){2,}")
-        xs = list(refo.finditer(regex, self.seq))
+        xs = list(refo.finditer(regexptn, self.seq))
         strxs = list(strregex.finditer(self.string))
         self._eq_list_n_stuff(xs, strxs)
 
     def test_finditer2(self):
         tab = self.a + self.b
-        regex = tab * (2, None) + refo.Group(refo.Plus(self.b), "foobar")
+        regexptn = tab * (2, None) + refo.Group(refo.Plus(self.b), "foobar")
         strregex = re.compile("(?:ab){2,}(b+)")
-        xs = list(refo.finditer(regex, self.seq))
+        xs = list(refo.finditer(regexptn, self.seq))
         strxs = list(strregex.finditer(self.string))
         xs = [x.group("foobar") for x in xs]
         strxs = [x.span(1) for x in strxs]
-        self.assertListEqual(xs, strxs)
+        self.assert_(xs == strxs)
 
     def test_match_path(self):
         seq = [[1, 2],     # x and y
@@ -145,9 +145,9 @@ class TestRefoModule(unittest.TestCase):
                [2, 3],     # y and z
                [0, 4, 5],
                []]
-        regex = refo.Star(self.y) + refo.Plus(self.x + self.z)
-        m = refo.match(regex, seq, keep_path=True)
-        self.assertIsInstance(m, Match)
+        regexptn = refo.Star(self.y) + refo.Plus(self.x + self.z)
+        m = refomatch(regexptn, seq, keep_path=True)
+        self.assert_(isinstance(m, Match))
         path = m.get_path()
         self.assertEqual([4, 1, 9, 1, 9], path)
 
