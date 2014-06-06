@@ -1,7 +1,7 @@
 REfO
 ====
 
-Lacking a propper name, REfO stands for "Regular Expressions for Objects".
+Lacking a proper name, REfO stands for "Regular Expressions for Objects".
 
 It's a python library that supplies a functionality very similar to the python
 `re` module (regular expressions) but for arbitrary sequences of objects
