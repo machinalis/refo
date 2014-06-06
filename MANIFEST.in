@@ -1,2 +1,7 @@
-include LICENSE.txt
-include README.txt
+include *.txt
+include README.md
+include ez_setup.py
+recursive-include refo *.py
+recursive-include examples *.py
+graft tests
+global-exclude *.pyc *$py.class

@@ -6,7 +6,8 @@
 #  You should have received a copy of license in the LICENSE.txt file.
 
 
-from refo import *
+from refo import finditer, Predicate, Plus
+
 import re
 import copy
 
@@ -76,11 +77,11 @@ def feet_to_mt(x):
 
 rules = [
 
-Rule(condition=W(pos="NUMBER") + W(pos="UNITS_FEET"),
-     action=feet_to_mt),
+    Rule(condition=W(pos="NUMBER") + W(pos="UNITS_FEET"),
+         action=feet_to_mt),
 
-Rule(condition=Plus(W(token="[^A-Z].*", pos="NNP")),
-     action=capitalize_name),
+    Rule(condition=Plus(W(token="[^A-Z].*", pos="NNP")),
+         action=capitalize_name),
 
 ]
 

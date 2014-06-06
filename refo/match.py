@@ -5,8 +5,8 @@
 #  This file is part of REfO and is distributed under the Modified BSD License.
 #  You should have received a copy of license in the LICENSE.txt file.
 
-from virtualmachine import VirtualMachine
-from patterns import Pattern, Any, Star, Group, _start, _end
+from .virtualmachine import VirtualMachine
+from .patterns import Pattern, Any, Star, Group, _start, _end
 
 
 class Match(object):
@@ -41,7 +41,7 @@ class Match(object):
 
     def offset(self, amount):
         assert "path" not in self.state
-        self.state = {key: i + amount for key, i in self.state.iteritems()}
+        self.state = dict((key, i + amount) for key, i in self.state.items())
 
     def get_path(self):
         return self.state["path"]
@@ -89,7 +89,7 @@ def finditer_lame(pattern, sequence):
     """
     offset = 0
     while offset <= len(sequence):
-        it = (sequence[i] for i in xrange(offset, len(sequence)))
+        it = (sequence[i] for i in range(offset, len(sequence)))
         m = search(pattern, it)
         if m is None:
             break
